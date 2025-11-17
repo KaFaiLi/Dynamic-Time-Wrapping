@@ -1,0 +1,77 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# Streamlit
+.streamlit/
+
+# Environment variables
+.env
+.env.local
+
+# Data files (uncomment if you want to ignore input data)
+# Input/*.csv
+# Input/*.xlsx
+
+# Output files
+*.xlsx
+*.png
+output/
+results/
+
+# Logs
+*.log
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Backup files
+*.bak
+*_old.py
+app_old.py
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
