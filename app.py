@@ -29,7 +29,7 @@ st.markdown("""
     
     /* Sidebar styling - theme-aware */
     [data-testid="stSidebar"] {
-        background-color: var(--background-color);
+        background-color: #202225;
     }
     
     /* Dark mode support for sidebar */

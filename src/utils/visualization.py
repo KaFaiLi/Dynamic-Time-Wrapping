@@ -2,6 +2,7 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
+import pandas as pd
 
 
 def plot_time_series_comparison(x, y, cols1, cols2, title="Time Series Comparison"):
@@ -98,3 +99,81 @@ def compute_ranking(dist_matrix, names):
     mean_distances = np.nanmean(np.where(dist_matrix == 0, np.nan, dist_matrix), axis=1)
     ranking = sorted(zip(names, mean_distances), key=lambda x: -x[1])
     return ranking
+
+
+def plot_divergence_analysis(df, col1, col2, path, divergence_scores, divergence_periods, threshold):
+    """
+    Create visualization highlighting divergence periods between two time series.
+    
+    Args:
+        df: DataFrame with original data and index
+        col1, col2: Column names being compared
+        path: DTW alignment path
+        divergence_scores: Local divergence scores along path
+        divergence_periods: List of (start, end, severity) tuples
+        threshold: Divergence threshold value
+        
+    Returns:
+        matplotlib Figure object
+    """
+    fig, axes = plt.subplots(3, 1, figsize=(14, 10), sharex=True)
+    
+    # Map path indices back to time indices
+    time_indices_col1 = [path[i][0] for i in range(len(path))]
+    time_indices_col2 = [path[i][1] for i in range(len(path))]
+    
+    # Plot 1: Original series with divergence regions highlighted
+    ax1 = axes[0]
+    ax1.plot(df.index, df[col1], label=col1, alpha=0.7, linewidth=2)
+    ax1.plot(df.index, df[col2], label=col2, alpha=0.7, linewidth=2)
+    
+    # Highlight divergence periods
+    legend_added = {'high': False, 'moderate': False}
+    for start, end, severity in divergence_periods:
+        start_time = df.index[time_indices_col1[start]]
+        end_time = df.index[time_indices_col1[min(end, len(time_indices_col1)-1)]]
+        
+        if severity > 1.5:
+            color = 'red'
+            label = f'High Divergence (>{1.5:.1f}x threshold)' if not legend_added['high'] else ''
+            legend_added['high'] = True
+        else:
+            color = 'orange'
+            label = f'Moderate Divergence (>{1.0:.1f}x threshold)' if not legend_added['moderate'] else ''
+            legend_added['moderate'] = True
+        
+        ax1.axvspan(start_time, end_time, alpha=0.2, color=color, label=label if label else '')
+    
+    ax1.set_ylabel('Normalized Value', fontsize=11, fontweight='bold')
+    ax1.set_title(f'Time Series Comparison: {col1} vs {col2}\n(Highlighted regions show divergence periods)', 
+                 fontsize=13, fontweight='bold')
+    ax1.legend(loc='upper left', fontsize=10)
+    ax1.grid(True, alpha=0.3)
+    
+    # Plot 2: Local divergence score over time
+    ax2 = axes[1]
+    aligned_times = [df.index[idx] for idx in time_indices_col1]
+    ax2.plot(aligned_times, divergence_scores, color='purple', linewidth=2, label='Local Divergence Score')
+    ax2.axhline(threshold, color='red', linestyle='--', linewidth=2, label=f'Threshold ({threshold:.3f})')
+    ax2.fill_between(aligned_times, 0, divergence_scores, where=(divergence_scores > threshold), 
+                     color='red', alpha=0.3, label='High Divergence Regions')
+    ax2.set_ylabel('Divergence Score', fontsize=11, fontweight='bold')
+    ax2.set_title('Local DTW Divergence Over Time', fontsize=13, fontweight='bold')
+    ax2.legend(loc='upper left', fontsize=10)
+    ax2.grid(True, alpha=0.3)
+    
+    # Plot 3: Difference between series
+    ax3 = axes[2]
+    diff = df[col1].values - df[col2].values
+    ax3.plot(df.index, diff, color='green', linewidth=1.5, label='Difference (Col1 - Col2)')
+    ax3.axhline(0, color='black', linestyle='-', linewidth=0.5)
+    ax3.fill_between(df.index, 0, diff, where=(diff > 0), color='green', alpha=0.3, label='Col1 > Col2')
+    ax3.fill_between(df.index, 0, diff, where=(diff < 0), color='red', alpha=0.3, label='Col1 < Col2')
+    ax3.set_xlabel('Time', fontsize=11, fontweight='bold')
+    ax3.set_ylabel('Raw Difference', fontsize=11, fontweight='bold')
+    ax3.set_title('Raw Difference Between Series', fontsize=13, fontweight='bold')
+    ax3.legend(loc='upper left', fontsize=10)
+    ax3.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    return fig
