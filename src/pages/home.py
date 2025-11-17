@@ -129,8 +129,6 @@ def render():
     using universal thresholds. The ranking feature helps identify outliers automatically.
     """)
     
-    st.markdown("---")
-    
     # Data preprocessing info
     with st.expander("⚙️ **Behind the Scenes: Data Processing Pipeline**"):
         st.markdown("""
@@ -148,7 +146,6 @@ def render():
     st.markdown("---")
     
     # Call to action
-    st.markdown('<div class="info-box">', unsafe_allow_html=True)
     st.markdown("""
     ### 🚀 Ready to Get Started?
     

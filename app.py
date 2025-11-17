@@ -27,43 +27,51 @@ st.markdown("""
         margin-bottom: 0.5rem;
     }
     
-    /* Sidebar styling */
+    /* Sidebar styling - theme-aware */
     [data-testid="stSidebar"] {
-        background-color: #f8f9fa;
+        background-color: var(--background-color);
     }
     
-    /* Navigation button styling */
+    /* Dark mode support for sidebar */
+    @media (prefers-color-scheme: dark) {
+        [data-testid="stSidebar"] {
+            background-color: var(--secondary-background-color);
+        }
+    }
+    
+    /* Navigation button styling - theme-aware */
     .nav-button {
         width: 100%;
         padding: 0.75rem;
         margin: 0.5rem 0;
         border-radius: 0.5rem;
-        border: 2px solid #e0e0e0;
-        background-color: white;
+        border: 2px solid var(--text-color-light, #e0e0e0);
+        background-color: var(--secondary-background-color);
         cursor: pointer;
         transition: all 0.3s ease;
         text-align: left;
         font-size: 1rem;
+        color: var(--text-color);
     }
     
     .nav-button:hover {
         border-color: #1f77b4;
-        background-color: #e3f2fd;
+        background-color: var(--background-color);
         transform: translateX(5px);
     }
     
     .nav-button.active {
         border-color: #1f77b4;
         background-color: #1f77b4;
-        color: white;
+        color: white !important;
         font-weight: 600;
     }
     
-    /* Info box styling */
+    /* Info box styling - theme-aware */
     .info-box {
         padding: 1rem;
         border-radius: 0.5rem;
-        background-color: #e3f2fd;
+        background-color: rgba(31, 119, 180, 0.1);
         border-left: 4px solid #1f77b4;
         margin: 1rem 0;
     }
