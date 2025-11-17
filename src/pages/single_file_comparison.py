@@ -11,38 +11,67 @@ from src.utils.visualization import plot_single_comparison, plot_heatmap, comput
 
 def render():
     """Render the single file pairwise comparison page"""
-    st.title("Single File: Pairwise DTW Comparison")
-    st.header("Upload one file and compare selected columns 2 by 2")
+    st.markdown('<h1 class="main-header">📊 Single File Column Comparison</h1>', unsafe_allow_html=True)
+    st.markdown("### Analyze relationships between columns within a single dataset")
+    st.markdown("---")
     
     # 1. File upload
-    uploaded_file = st.file_uploader("Upload a CSV or Excel file", type=["csv", "xlsx"], key="single_file")
+    st.markdown('<div class="step-header">📤 Step 1: Upload Your File</div>', unsafe_allow_html=True)
+    uploaded_file = st.file_uploader(
+        "📄 Upload Dataset", 
+        type=["csv", "xlsx"], 
+        key="single_file",
+        help="Upload a CSV or Excel file containing multiple time series columns"
+    )
     
     if uploaded_file:
         # Read file
         df = read_file(uploaded_file)
         
-        st.write("Preview of uploaded data:")
-        st.dataframe(df.head())
+        st.success(f"✅ File loaded successfully! ({len(df)} rows, {len(df.columns)} columns)")
+        
+        with st.expander("🔍 Preview uploaded data", expanded=False):
+            st.dataframe(df.head(10), use_container_width=True)
+        
+        st.markdown("---")
         
         # 2. Select date/time columns (optional)
-        date_col = st.selectbox("Date column (optional)", ["None"] + list(df.columns), index=0, key="single_date")
-        time_col = st.selectbox("Time column (optional)", ["None"] + list(df.columns), index=0, key="single_time")
+        st.markdown('<div class="step-header">📅 Step 2: Configure Date/Time Columns (Optional)</div>', unsafe_allow_html=True)
+        st.info("💡 If your data has temporal information, select the date/time columns for proper alignment.")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            date_col = st.selectbox("📅 Date column", ["None"] + list(df.columns), index=0, key="single_date")
+        with col2:
+            time_col = st.selectbox("🕐 Time column", ["None"] + list(df.columns), index=0, key="single_time")
+        
+        st.markdown("---")
         
         # 3. Select columns to compare
+        st.markdown('<div class="step-header">🎯 Step 3: Select Columns to Compare</div>', unsafe_allow_html=True)
         numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+        
         if not numeric_cols:
-            st.warning("No numeric columns found for comparison.")
+            st.error("❌ No numeric columns found for comparison. Please upload a file with numerical data.")
         else:
+            st.info(f"💡 Found {len(numeric_cols)} numeric columns. Select at least 2 to compare pairwise.")
+            
             selected_cols = st.multiselect(
-                "Select columns to compare pairwise (at least 2)",
+                "Select columns for pairwise comparison",
                 numeric_cols,
-                key="single_cols"
+                key="single_cols",
+                help="Choose numerical columns to compare with each other"
             )
             
+            if len(selected_cols) >= 2:
+                num_comparisons = len(list(itertools.combinations(selected_cols, 2)))
+                st.caption(f"This will perform {num_comparisons} pairwise comparisons")
+            
             if len(selected_cols) < 2:
-                st.info("Please select at least two columns.")
+                st.warning("⚠️ Please select at least two columns.")
             else:
-                run = st.button("Run Pairwise DTW Comparison")
+                st.markdown("---")
+                run = st.button("🚀 Run Pairwise DTW Comparison", type="primary", use_container_width=True)
                 
                 if run:
                     # Add Datetime if needed
@@ -51,14 +80,24 @@ def render():
                         df = df.sort_values('Datetime')
                     
                     # Prepare results and distance matrix
+                    st.markdown("---")
+                    st.markdown("## 🔄 Processing Comparisons")
+                    
                     results = []
                     pairs = list(itertools.combinations(selected_cols, 2))
                     n = len(selected_cols)
                     dist_matrix = np.zeros((n, n))
                     
-                    st.write(f"Comparing {len(pairs)} pairs:")
+                    progress_bar = st.progress(0)
+                    status_text = st.empty()
+                    total = len(pairs)
+                    
+                    # Container for individual comparisons
+                    comparisons_container = st.container()
                     
                     for idx, (col1, col2) in enumerate(pairs):
+                        status_text.text(f"📊 Comparing: `{col1}` vs `{col2}` ({idx + 1}/{total})")
+                        
                         # Remove outliers independently
                         s1 = remove_outliers_iqr(df[col1].dropna())
                         s2 = remove_outliers_iqr(df[col2].dropna())
@@ -89,24 +128,68 @@ def render():
                         dist_matrix[i, j] = dist
                         dist_matrix[j, i] = dist
                         
-                        # Plot
-                        st.subheader(f"DTW: {col1} vs {col2} (Distance: {dist:.3f})")
-                        fig = plot_single_comparison(s1, s2, col1, col2, dist)
+                        # Update progress
+                        progress_bar.progress((idx + 1) / total)
+                    
+                    progress_bar.empty()
+                    status_text.empty()
+                    st.success(f"✅ Completed {total} pairwise comparisons!")
+                    
+                    # Show results in tabs
+                    st.markdown("---")
+                    st.markdown("## 📊 Results")
+                    
+                    tab1, tab2, tab3, tab4 = st.tabs(["📋 Distance Table", "🏆 Column Ranking", "🗺️ Heatmap", "📈 Individual Plots"])
+                    
+                    with tab1:
+                        st.markdown("### Pairwise DTW Distances")
+                        st.caption("All pairwise comparisons between selected columns")
+                        results_df = pd.DataFrame(results)
+                        st.dataframe(results_df, use_container_width=True, height=400)
+                    
+                    with tab2:
+                        # Compute ranking
+                        ranking = compute_ranking(dist_matrix, selected_cols)
+                        ranking_df = pd.DataFrame(ranking, columns=["Column", "Mean DTW Distance"])
+                        
+                        st.markdown("### Column Ranking by Dissimilarity")
+                        st.caption("Columns ranked by mean DTW distance to all others (higher = more different)")
+                        
+                        st.dataframe(
+                            ranking_df.style.background_gradient(subset=['Mean DTW Distance'], cmap='YlOrRd'),
+                            use_container_width=True,
+                            height=400
+                        )
+                        
+                        st.info(f"🔍 **Most dissimilar column:** `{ranking_df.iloc[0]['Column']}` (Mean distance: {ranking_df.iloc[0]['Mean DTW Distance']:.3f})")
+                        st.success(f"✅ **Most similar column:** `{ranking_df.iloc[-1]['Column']}` (Mean distance: {ranking_df.iloc[-1]['Mean DTW Distance']:.3f})")
+                    
+                    with tab3:
+                        st.markdown("### Distance Matrix Heatmap")
+                        st.caption("Visual representation of pairwise DTW distances")
+                        
+                        fig = plot_heatmap(dist_matrix, selected_cols, "DTW Distance Matrix")
                         st.pyplot(fig)
                     
-                    # Show results table
-                    st.subheader("Pairwise DTW Distances")
-                    st.dataframe(pd.DataFrame(results))
-                    
-                    # Compute ranking
-                    ranking = compute_ranking(dist_matrix, selected_cols)
-                    
-                    st.subheader("Column Ranking by Mean DTW Distance (most different at top)")
-                    st.dataframe(pd.DataFrame(ranking, columns=["Column", "Mean DTW Distance"]))
-                    
-                    # Show heatmap
-                    st.subheader("Pairwise Distance Heatmap")
-                    fig = plot_heatmap(dist_matrix, selected_cols, "DTW Distance Matrix")
-                    st.pyplot(fig)
+                    with tab4:
+                        st.markdown("### Individual Pairwise Comparisons")
+                        st.caption("Detailed visualizations of each comparison")
+                        
+                        for idx, (col1, col2) in enumerate(pairs):
+                            with st.expander(f"🔍 {col1} vs {col2} (Distance: {results[idx]['DTW Distance']:.3f})", expanded=False):
+                                # Recompute for plotting
+                                s1 = remove_outliers_iqr(df[col1].dropna())
+                                s2 = remove_outliers_iqr(df[col2].dropna())
+                                min_len = min(len(s1), len(s2))
+                                s1 = s1.iloc[:min_len].values
+                                s2 = s2.iloc[:min_len].values
+                                mean = np.mean(np.concatenate([s1, s2]))
+                                std = np.std(np.concatenate([s1, s2]))
+                                std = std if std != 0 else 1
+                                s1 = (s1 - mean) / std
+                                s2 = (s2 - mean) / std
+                                
+                                fig = plot_single_comparison(s1, s2, col1, col2, results[idx]['DTW Distance'])
+                                st.pyplot(fig)
     else:
-        st.info("Please upload a file to begin.")
+        st.info("👆 Please upload a CSV or Excel file to begin the analysis.")
