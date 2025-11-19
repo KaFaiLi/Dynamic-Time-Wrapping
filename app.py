@@ -29,14 +29,26 @@ st.markdown("""
     
     /* Sidebar styling - theme-aware */
     [data-testid="stSidebar"] {
-        background-color: #202225;
+        background-color: var(--secondary-background-color);
     }
     
-    /* Dark mode support for sidebar */
-    @media (prefers-color-scheme: dark) {
-        [data-testid="stSidebar"] {
-            background-color: var(--secondary-background-color);
-        }
+    /* Sidebar text elements - ensure readability in both modes */
+    [data-testid="stSidebar"] * {
+        color: var(--text-color);
+    }
+    
+    /* Sidebar markdown headings */
+    [data-testid="stSidebar"] h3 {
+        color: var(--text-color) !important;
+    }
+    
+    /* Sidebar links */
+    [data-testid="stSidebar"] a {
+        color: #1f77b4;
+    }
+    
+    [data-testid="stSidebar"] a:hover {
+        color: #1557a0;
     }
     
     /* Navigation button styling - theme-aware */
@@ -45,7 +57,7 @@ st.markdown("""
         padding: 0.75rem;
         margin: 0.5rem 0;
         border-radius: 0.5rem;
-        border: 2px solid var(--text-color-light, #e0e0e0);
+        border: 2px solid rgba(128, 128, 128, 0.3);
         background-color: var(--secondary-background-color);
         cursor: pointer;
         transition: all 0.3s ease;
